@@ -15,7 +15,6 @@ import (
 type FileData struct {
 	index int
 	path  string
-	hash  string
 }
 
 func main() {
@@ -28,7 +27,7 @@ func main() {
 				return err
 			}
 			if !info.IsDir() {
-				temp := FileData{index, path, ""}
+				temp := FileData{index, path}
 				myFiles = append(myFiles, temp)
 				index++
 			}
@@ -48,18 +47,22 @@ func main() {
 
 	for i := 0; i < chunks; i++ {
 		wg.Add(1)
-		go PrintIt(myFiles[i : (i+1)*chunkSize-1])
+		log.Println(fmt.Sprintf("launching: %d", i))
+		go PrintIt(&wg, i, myFiles[i*chunkSize:(i+1)*chunkSize-1])
 	}
 	if finalChunk > 0 {
-		PrintIt(myFiles[arraySize-finalChunk-1 : arraySize-1])
+		PrintIt(&wg, chunks, myFiles[arraySize-finalChunk-1:arraySize-1])
 	}
 	wg.Wait()
 }
 
-func PrintIt(files []FileData) {
+func PrintIt(wg *sync.WaitGroup, index int, files []FileData) {
+	defer wg.Done()
 	for _, elem := range files {
-		log.Println(fmt.Sprintf("%d -> %s -> %s", elem.index, elem.path, HashIt(elem.path)))
+		fmt.Sprintf("%d -> %s -> %s", elem.index, elem.path, HashIt(elem.path))
+		//log.Println(txt)
 	}
+	log.Println(fmt.Sprintf("worker done: %d| Processed: %d", index, len(files)))
 }
 
 func HashIt(filename string) string {
